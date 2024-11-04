@@ -1,0 +1,39 @@
+# Import dataset
+db_jabes <- read_excel("FULL_panel_database_aspersion_ALL_YEARS_ALL_MUNICIPALITIES_AREA.xlsx", 
+                   sheet = "main")
+
+# Convert to panel dataframe
+panel_all_jabes <- pdata.frame(db_jabes)
+
+# Simple OLS model for benchmarking
+ols1 <- lm(coca ~ aspersion+as.factor(year)+I(QGISarea_h/100)  , data = panel_all_jabes)
+summary(ols1)
+coeftest(ols1,vcovHC(ols1, type = "HC1"))
+
+# Simple OLS model controlling for municipality differences
+ols2 <- lm(coca ~ aspersion+as.factor(year)+as.factor(municipality)  , data = panel_all_jabes)
+summary(ols2)
+G <- length(unique(panel_all_jabes$municipality))
+c <- G/(G - 1)
+robcoe=coeftest(ols2,c * vcovHC(ols2, type = "HC1", cluster = "group"))
+
+# Instrumental variables and two stage least squares simple models
+# First model
+IV1=iv_robust(coca ~ aspersion+as.factor(year)+as.factor(municipality) | windMM3+as.factor(year)+as.factor(municipality), data = panel_all_jabes,  se_type = "HC1",  diagnostics = TRUE)
+summary(IV1)
+
+# Second model
+IV2=iv_robust(coca ~ aspersion+as.factor(year)+as.factor(municipality)+rain03 | windMM3+as.factor(year)+as.factor(municipality)+rain03, data = panel_all_jabes,  se_type = "HC1",  diagnostics = TRUE)
+summary(IV2)
+
+# Third model
+IV3=iv_robust(coca ~ aspersion+as.factor(year)+as.factor(municipality)+rain03+errad_manual + seizure + labs + vrf_peq_productor | windMM3+as.factor(year)+as.factor(municipality)+rain03+errad_manual + seizure + labs + vrf_peq_productor, data = panel_all_jabes,  se_type = "HC1",  diagnostics = TRUE)
+summary(IV3)
+
+# Fourth model
+IV4=iv_robust(coca ~ aspersion+as.factor(year)+as.factor(municipality)+rain03+errad_manual + seizure + labs + vrf_peq_productor+ homicidios + displaced  | windMM3+as.factor(year)+as.factor(municipality)+rain03+errad_manual + seizure + labs + vrf_peq_productor+ homicidios + displaced , data = panel_all_jabes,  se_type = "HC1",  diagnostics = TRUE)
+summary(IV4)
+
+# Fifth model
+IV5=iv_robust(coca ~ aspersion+rain03+as.factor(year)+as.factor(municipality)+errad_manual + seizure + labs + vrf_peq_productor+ homicidios + displaced  | windMM3+temp+rain03+as.factor(year)+as.factor(municipality)+errad_manual + seizure + labs + vrf_peq_productor+ homicidios + displaced   , data = panel_all_jabes,  se_type = "HC1",  diagnostics = TRUE)
+summary(IV5)
